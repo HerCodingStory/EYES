@@ -15,25 +15,28 @@ import android.util.Log;
 
 
 public class MainActivity extends AppCompatActivity {
- MediaPlayer player;
 
     private final String RECOGNIZE_TEXT_INTENT = "net.shellhacks.eyes.RECOGNIZE_TEXT";
+
+    private MediaPlayer player;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         Button tutorialButton = findViewById(R.id.button5);
 
-        tutorialButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                player = MediaPlayer.create(MainActivity.this, R.raw.tutorial);
-                player.start();
-            }
-        });
+        player = MediaPlayer.create(MainActivity.this, R.raw.tutorial);
 
+        if(player != null && !player.isPlaying())
+        {
+            tutorialButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    player.start();
+                }
+            });
+        }
         tutorialButton.setOnLongClickListener(new View.OnLongClickListener() {
             public boolean onLongClick(View v) {
                 player.pause();
