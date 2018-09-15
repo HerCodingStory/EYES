@@ -24,23 +24,22 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button tutorialButton=findViewById(R.id.button5);
+        Button tutorialButton = findViewById(R.id.button5);
 
         tutorialButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                player=MediaPlayer.create(MainActivity.this,R.raw.tutorial);
+                player = MediaPlayer.create(MainActivity.this, R.raw.tutorial);
                 player.start();
             }
         });
 
-        tutorialButton.setOnLongClickListener(new View.OnLongClickListener(){
-            public boolean onLongClick(View v){
+        tutorialButton.setOnLongClickListener(new View.OnLongClickListener() {
+            public boolean onLongClick(View v) {
                 player.pause();
                 return true;
             }
         });
-    }
 
         Button objectRecognitionButton = findViewById(R.id.button6);
         objectRecognitionButton.setOnClickListener(new View.OnClickListener() {
@@ -74,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
                  */
             }
         });
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
