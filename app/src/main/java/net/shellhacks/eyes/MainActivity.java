@@ -86,4 +86,8 @@ public class MainActivity extends AppCompatActivity {
             Log.d("TextRecognition","Some text recognition should be done now");
         }
     }
+
+    public void onTokenReceived(String token) {
+
+    }
 }
