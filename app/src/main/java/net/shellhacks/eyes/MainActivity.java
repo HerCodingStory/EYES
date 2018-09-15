@@ -15,9 +15,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button button1=findViewById(R.id.button5);
+        Button tutorialButton=findViewById(R.id.button5);
 
-        button1.setOnClickListener(new View.OnClickListener() {
+        tutorialButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 player=MediaPlayer.create(MainActivity.this,R.raw.tutorial);
@@ -25,12 +25,44 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        button1.setOnLongClickListener(new View.OnLongClickListener(){
+        tutorialButton.setOnLongClickListener(new View.OnLongClickListener(){
             public boolean onLongClick(View v){
                 player.pause();
                 return true;
             }
         });
 
+        Button objectRecognitionButton = findViewById(R.id.button6);
+        objectRecognitionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                /*
+                To Do:
+                Add Object Recognition
+                 */
+            }
+        });
+
+        Button faceRecognitionButton = findViewById(R.id.button7);
+        faceRecognitionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                /*
+                To Do:
+                Add Face Recognition
+                 */
+            }
+        });
+
+        Button textRecognitionButton = findViewById(R.id.button8);
+        textRecognitionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                /*
+                To Do:
+                Add Text Recognition
+                 */
+            }
+        });
     }
 }
