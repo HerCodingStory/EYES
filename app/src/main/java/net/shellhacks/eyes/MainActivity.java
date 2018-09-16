@@ -11,6 +11,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
@@ -20,6 +21,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -42,6 +44,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private CameraCaptureSession cameraCaptureSession;
     private TextureView.SurfaceTextureListener surfaceTextureListener;
     private TextureView textureView;
+    private Size previewSize;
+    private String cameraId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int i, int i1) {
                 setUpCamera();
-                setUpCameraCapture();
+                openCamera();
             }
 
             @Override
@@ -87,10 +91,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         openBackgroundThread();
         if (textureView.isAvailable()) {
             setUpCamera();
-            setUpCameraCapture();
+            openCamera();
         }
         else {
             textureView.setSurfaceTextureListener(surfaceTextureListener);
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        closeCamera();
+        closeBackgroundThread();
+    }
+
+    private void closeCamera() {
+        if (cameraCaptureSession != null) {
+            cameraCaptureSession.close();
+            cameraCaptureSession = null;
+        }
+
+        if (cameraDevice != null) {
+            cameraCaptureSession.close();
+            cameraDevice = null;
+        }
+    }
+
+    private void closeBackgroundThread() {
+        if (backgroundHandler != null) {
+            backgroundHandlerThread.quitSafely();
+            backgroundHandlerThread = null;
+            backgroundHandler = null;
         }
     }
 
@@ -99,7 +130,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onOpened(@NonNull CameraDevice cameraDevice) {
                 MainActivity.this.cameraDevice = cameraDevice;
-                setUpCameraCapture();
+                createPreviewSession();
             }
 
             @Override
@@ -121,21 +152,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             for (String id : cameraManager.getCameraIdList()) {
                 CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(id);
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
-                        cameraCharacteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK)
-                    cameraManager.openCamera(id, stateCallback, backgroundHandler);
+                        cameraCharacteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK) {
+                    StreamConfigurationMap streamConfigurationMap = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+                    previewSize = streamConfigurationMap.getOutputSizes(SurfaceTexture.class)[0];
+                    this.cameraId = id;
+                }
             }
         } catch (CameraAccessException e1) {
             e1.printStackTrace();
         }
     }
 
-    private void setUpCameraCapture() {
+    private void openCamera() {
         try {
-            final CaptureRequest.Builder captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                cameraManager.openCamera(cameraId, stateCallback, backgroundHandler);
+            }
+        }
+        catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void createPreviewSession() {
+        try {
             SurfaceTexture surfaceTexture = textureView.getSurfaceTexture();
+            surfaceTexture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
             Surface previewSurface = new Surface(surfaceTexture);
+            final CaptureRequest.Builder captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             captureRequestBuilder.addTarget(previewSurface);
-            cameraDevice.createCaptureSession(Collections.singletonList(previewSurface), new CameraCaptureSession.StateCallback() {
+            cameraDevice.createCaptureSession(Collections.singletonList(previewSurface),
+                    new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                     if (cameraDevice == null) {
