@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
+import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -16,23 +17,29 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
+import com.google.android.gms.vision.text.Text;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Locale;
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    Button speakButton;
-    final int VOICE_RECOGNITION_REQUEST_CODE = 1234;
+    private Button speakButton;
+    private final int VOICE_RECOGNITION_REQUEST_CODE = 1234;
     private MediaPlayer player;
     private CameraSource cameraSource;
     private SurfaceView surfaceView;
     private TextView textView;
     private static final String TAG = "MainActivity";
     private static final int requestPermissionID = 101;
+    private String textFeed;
+    private TextToSpeech tts;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,8 +71,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             if (matches.contains("tutorial")) {
                 player.start();
-            }
-            else {
+            } else {
                 if (matches.contains("object recognition")) {
                     /*
                      * TODO
@@ -73,10 +79,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                      */
                 }
                 if (matches.contains("text recognition")) {
-                /*
-                To do:
-                text recognition stuff
-                 */
+                    tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+                        @Override
+                        public void onInit(int i) {
+                            if (i == TextToSpeech.SUCCESS) {
+                                int result = tts.setLanguage(Locale.US);
+                                if (result == TextToSpeech.LANG_MISSING_DATA ||
+                                        result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                                    Log.e("error", "This Language is not supported");
+                                } else {
+                                    tts.speak(textFeed, TextToSpeech.QUEUE_FLUSH, null, TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID);
+
+                                }
+                            } else
+                                Log.e("error", "Initilization Failed!");
+                        }
+                    });
+                    tts.setLanguage(Locale.US);
                 }
                 if (matches.contains("location recognition")) {
                 /*
@@ -159,20 +178,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 @Override
                 public void receiveDetections(Detector.Detections<TextBlock> detections) {
                     final SparseArray<TextBlock> items = detections.getDetectedItems();
-                    if (items.size() != 0 ){
+                    if (items.size() != 0) {
 
-                        textView.post(new Runnable() {
+                        new Runnable() {
                             @Override
                             public void run() {
                                 StringBuilder stringBuilder = new StringBuilder();
-                                for(int i=0;i<items.size();i++){
+                                for (int i = 0; i < items.size(); i++) {
                                     TextBlock item = items.valueAt(i);
                                     stringBuilder.append(item.getValue());
                                     stringBuilder.append("\n");
                                 }
-                                textView.setText(stringBuilder.toString());
+                                textFeed = stringBuilder.toString();
                             }
-                        });
+                        }.run();
                     }
                 }
             });
