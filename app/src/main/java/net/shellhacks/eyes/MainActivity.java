@@ -23,7 +23,6 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
     Button speakButton;
-    private final String RECOGNIZE_TEXT_INTENT = "net.shellhacks.eyes.RECOGNIZE_TEXT";
     final int VOICE_RECOGNITION_REQUEST_CODE = 1234;
     private MediaPlayer player;
 
