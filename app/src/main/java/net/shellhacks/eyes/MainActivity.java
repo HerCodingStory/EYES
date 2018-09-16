@@ -1,16 +1,22 @@
 package net.shellhacks.eyes;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Camera;
+import android.content.pm.PackageManager;
 import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.params.StreamConfigurationMap;
+import android.hardware.camera2.CaptureRequest;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.speech.RecognizerIntent;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -24,6 +30,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     final int VOICE_RECOGNITION_REQUEST_CODE = 1234;
     private MediaPlayer player;
     private CameraManager cameraManager;
+    private CameraDevice.StateCallback stateCallback;
+    private CameraDevice cameraDevice;
+    private HandlerThread backgroundHandlerThread;
+    private Handler backgroundHandler;
+    private CaptureRequest captureRequest;
+    private CameraCaptureSession cameraCaptureSession;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,21 +45,69 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         speakButton = findViewById(R.id.button8);
         speakButton.setOnClickListener(this);
 
-        voiceinputbuttons();
-
         player = MediaPlayer.create(MainActivity.this, R.raw.tutorial);
         cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        setUpStateCallback();
+        openBackgroundThread();
+        openCamera();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        openCamera();
+    }
+
+    private void setUpStateCallback() {
+        stateCallback = new CameraDevice.StateCallback() {
+            @Override
+            public void onOpened(@NonNull CameraDevice cameraDevice) {
+                MainActivity.this.cameraDevice = cameraDevice;
+            }
+
+            @Override
+            public void onDisconnected(@NonNull CameraDevice cameraDevice) {
+                cameraDevice.close();
+                MainActivity.this.cameraDevice = null;
+            }
+
+            @Override
+            public void onError(@NonNull CameraDevice cameraDevice, int i) {
+                cameraDevice.close();
+                MainActivity.this.cameraDevice = null;
+            }
+        };
+    }
+
+    private void openCamera() {
         try {
             for (String id : cameraManager.getCameraIdList()) {
                 CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(id);
-                if (cameraCharacteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK) {
-                    cameraManager.openCamera(id, CameraDevice.StateCallback.);
-                    return;
+                if (cameraCharacteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK &&
+                        ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    cameraManager.openCamera(id, stateCallback, backgroundHandler);
+                    final CaptureRequest.Builder captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+                    cameraDevice.createCaptureSession(null, new CameraCaptureSession.StateCallback() {
+                        @Override
+                        public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                            if (cameraDevice == null) {
+                                return;
+                            }
+                            try {
+                                captureRequest = captureRequestBuilder.build();
+                                MainActivity.this.cameraCaptureSession = cameraCaptureSession;
+                                MainActivity.this.cameraCaptureSession.setRepeatingRequest(captureRequest, null, backgroundHandler);
+                            }
+                            catch (CameraAccessException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        @Override
+                        public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+
+                        }
+                    }, backgroundHandler);
                 }
             }
         } catch (CameraAccessException e) {
@@ -55,8 +115,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    public void voiceinputbuttons() {
-        speakButton = findViewById(R.id.button8);
+    private void openBackgroundThread() {
+        backgroundHandlerThread = new HandlerThread("camera_background_thread");
+        backgroundHandlerThread.start();
+        backgroundHandler = new Handler(backgroundHandlerThread.getLooper());
     }
 
     public void startVoiceRecognitionActivity() {
