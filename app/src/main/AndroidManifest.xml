@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="net.shellhacks.eyes">
 
+    <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -15,11 +18,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="net.shellhacks.eyes.RECOGNIZE_TEXT"/>
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.VOICE" />
             </intent-filter>
         </activity>
     </application>
