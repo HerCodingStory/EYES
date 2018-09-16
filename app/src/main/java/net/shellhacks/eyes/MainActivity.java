@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -19,13 +20,16 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Surface;
+import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     Button speakButton;
     final int VOICE_RECOGNITION_REQUEST_CODE = 1234;
     private MediaPlayer player;
@@ -36,26 +40,58 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Handler backgroundHandler;
     private CaptureRequest captureRequest;
     private CameraCaptureSession cameraCaptureSession;
+    private TextureView.SurfaceTextureListener surfaceTextureListener;
+    private TextureView textureView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 200);
         speakButton = findViewById(R.id.button8);
         speakButton.setOnClickListener(this);
+        textureView = findViewById(R.id.textureView);
 
         player = MediaPlayer.create(MainActivity.this, R.raw.tutorial);
         cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        surfaceTextureListener = new TextureView.SurfaceTextureListener() {
+            @Override
+            public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int i, int i1) {
+                setUpCamera();
+                setUpCameraCapture();
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int i, int i1) {
+
+            }
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
+                return false;
+            }
+
+            @Override
+            public void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture) {
+
+            }
+        };
         setUpStateCallback();
         openBackgroundThread();
-        openCamera();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        openCamera();
+        openBackgroundThread();
+        if (textureView.isAvailable()) {
+            setUpCamera();
+            setUpCameraCapture();
+        }
+        else {
+            textureView.setSurfaceTextureListener(surfaceTextureListener);
+        }
     }
 
     private void setUpStateCallback() {
@@ -63,6 +99,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onOpened(@NonNull CameraDevice cameraDevice) {
                 MainActivity.this.cameraDevice = cameraDevice;
+                setUpCameraCapture();
             }
 
             @Override
@@ -79,37 +116,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         };
     }
 
-    private void openCamera() {
+    private void setUpCamera() {
         try {
             for (String id : cameraManager.getCameraIdList()) {
                 CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(id);
-                if (cameraCharacteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK &&
-                        ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                        cameraCharacteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK)
                     cameraManager.openCamera(id, stateCallback, backgroundHandler);
-                    final CaptureRequest.Builder captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-                    cameraDevice.createCaptureSession(null, new CameraCaptureSession.StateCallback() {
-                        @Override
-                        public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-                            if (cameraDevice == null) {
-                                return;
-                            }
-                            try {
-                                captureRequest = captureRequestBuilder.build();
-                                MainActivity.this.cameraCaptureSession = cameraCaptureSession;
-                                MainActivity.this.cameraCaptureSession.setRepeatingRequest(captureRequest, null, backgroundHandler);
-                            }
-                            catch (CameraAccessException e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        @Override
-                        public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-
-                        }
-                    }, backgroundHandler);
-                }
             }
+        } catch (CameraAccessException e1) {
+            e1.printStackTrace();
+        }
+    }
+
+    private void setUpCameraCapture() {
+        try {
+            final CaptureRequest.Builder captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            SurfaceTexture surfaceTexture = textureView.getSurfaceTexture();
+            Surface previewSurface = new Surface(surfaceTexture);
+            captureRequestBuilder.addTarget(previewSurface);
+            cameraDevice.createCaptureSession(Collections.singletonList(previewSurface), new CameraCaptureSession.StateCallback() {
+                @Override
+                public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                    if (cameraDevice == null) {
+                        return;
+                    }
+                    try {
+                        captureRequest = captureRequestBuilder.build();
+                        MainActivity.this.cameraCaptureSession = cameraCaptureSession;
+                        MainActivity.this.cameraCaptureSession.setRepeatingRequest(captureRequest, null, backgroundHandler);
+                    } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+
+                }
+            }, backgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -137,22 +182,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (matches.contains("tutorial")) {
                 player.start();
             }
-            if (matches.contains("object recognition"))
-            {
+            if (matches.contains("object recognition")) {
                 /*
                 To do:
                 object recognition stuff
                  */
             }
-            if (matches.contains("text recognition"))
-            {
+            if (matches.contains("text recognition")) {
                 /*
                 To do:
                 text recognition stuff
                  */
             }
-            if (matches.contains("location recognition"))
-            {
+            if (matches.contains("location recognition")) {
                 /*
                 To do:
                 location recognition stuff
