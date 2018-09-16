@@ -1,30 +1,29 @@
 package net.shellhacks.eyes;
-import android.content.pm.PackageManager;
+
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Camera;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.MediaPlayer;
 import android.os.Bundle;
-
 import android.speech.RecognizerIntent;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 
-import android.Manifest;
-import android.content.Intent;
-import android.provider.AlarmClock;
-import android.service.voice.VoiceInteractionService;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.util.Log;
-import android.widget.ListView;
-
 import java.util.ArrayList;
-import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
     Button speakButton;
     final int VOICE_RECOGNITION_REQUEST_CODE = 1234;
     private MediaPlayer player;
+    private CameraManager cameraManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,9 +35,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         voiceinputbuttons();
 
-
         player = MediaPlayer.create(MainActivity.this, R.raw.tutorial);
+        cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        try {
+            for (String id : cameraManager.getCameraIdList()) {
+                CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(id);
+                if (cameraCharacteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK) {
+                    cameraManager.openCamera(id, CameraDevice.StateCallback.);
+                    return;
+                }
+            }
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
     }
 
     public void voiceinputbuttons() {
