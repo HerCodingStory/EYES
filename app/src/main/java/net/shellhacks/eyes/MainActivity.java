@@ -37,24 +37,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         voiceinputbuttons();
 
-        Button tutorialButton = findViewById(R.id.button5);
 
         player = MediaPlayer.create(MainActivity.this, R.raw.tutorial);
-
-        if (player != null && !player.isPlaying()) {
-            tutorialButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    player.start();
-                }
-            });
-        }
-        tutorialButton.setOnLongClickListener(new View.OnLongClickListener() {
-            public boolean onLongClick(View v) {
-                player.pause();
-                return true;
-            }
-        });
 
     }
 
@@ -77,6 +61,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             if (matches.contains("tutorial")) {
                 player.start();
+            }
+            if (matches.contains("object recognition"))
+            {
+                /*
+                To do:
+                object recognition stuff
+                 */
+            }
+            if (matches.contains("text recognition"))
+            {
+                /*
+                To do:
+                text recognition stuff
+                 */
+            }
+            if (matches.contains("location recognition"))
+            {
+                /*
+                To do:
+                location recognition stuff
+                 */
             }
         }
     }
