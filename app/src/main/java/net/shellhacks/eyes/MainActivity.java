@@ -88,7 +88,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onTokenReceived(String token) {
 
     }
-}
 
     @Override
     public void onClick(View view) {
