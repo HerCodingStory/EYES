@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -20,12 +21,14 @@ import android.speech.RecognizerIntent;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
 
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -45,6 +48,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextureView textureView;
     private Size previewSize;
     private String cameraId;
+    private CaptureRequest.Builder captureRequestBuilder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,8 +94,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (textureView.isAvailable()) {
             setUpCamera();
             openCamera();
-        }
-        else {
+        } else {
             textureView.setSurfaceTextureListener(surfaceTextureListener);
         }
     }
@@ -172,8 +175,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 cameraManager.openCamera(cameraId, stateCallback, backgroundHandler);
             }
-        }
-        catch (CameraAccessException e) {
+        } catch (CameraAccessException e) {
             e.printStackTrace();
         }
     }
@@ -184,28 +186,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             surfaceTexture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
             Surface previewSurface = new Surface(surfaceTexture);
             final CaptureRequest.Builder captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            this.captureRequestBuilder = captureRequestBuilder;
             captureRequestBuilder.addTarget(previewSurface);
             cameraDevice.createCaptureSession(Collections.singletonList(previewSurface),
                     new CameraCaptureSession.StateCallback() {
-                @Override
-                public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    if (cameraDevice == null) {
-                        return;
-                    }
-                    try {
-                        captureRequest = captureRequestBuilder.build();
-                        MainActivity.this.cameraCaptureSession = cameraCaptureSession;
-                        MainActivity.this.cameraCaptureSession.setRepeatingRequest(captureRequest, null, backgroundHandler);
-                    } catch (CameraAccessException e) {
-                        e.printStackTrace();
-                    }
-                }
+                        @Override
+                        public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                            if (cameraDevice == null) {
+                                return;
+                            }
+                            try {
+                                captureRequest = captureRequestBuilder.build();
+                                MainActivity.this.cameraCaptureSession = cameraCaptureSession;
+                                MainActivity.this.cameraCaptureSession.setRepeatingRequest(captureRequest, null, backgroundHandler);
+                            } catch (CameraAccessException e) {
+                                e.printStackTrace();
+                            }
+                        }
 
-                @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+                        @Override
+                        public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
 
-                }
-            }, backgroundHandler);
+                        }
+                    }, backgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void lock() {
+        try {
+            cameraCaptureSession.capture(captureRequestBuilder.build(), null, backgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void unlock() {
+        try {
+            cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -233,24 +252,42 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (matches.contains("tutorial")) {
                 player.start();
             }
-            if (matches.contains("object recognition")) {
-                /*
-                To do:
-                object recognition stuff
-                 */
-            }
-            if (matches.contains("text recognition")) {
+            else {
+                Bitmap bitmap = captureImage();
+                if (matches.contains("object recognition")) {
+                    /*
+                     * TODO
+                     * object recognition stuff
+                     */
+                }
+                if (matches.contains("text recognition")) {
                 /*
                 To do:
                 text recognition stuff
                  */
-            }
-            if (matches.contains("location recognition")) {
+                }
+                if (matches.contains("location recognition")) {
                 /*
                 To do:
                 location recognition stuff
                  */
+                }
             }
+        }
+    }
+
+    private Bitmap captureImage() {
+        lock();
+        Bitmap bitmap = null;
+        try {
+            bitmap = textureView.getBitmap();
+            Log.d("Reached", "the thing");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        finally {
+            unlock();
+            return bitmap;
         }
     }
 
