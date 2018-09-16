@@ -16,6 +16,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
 }
 
 dependencies {
@@ -28,7 +29,8 @@ dependencies {
 
     // Google Cloud Vision API
     implementation 'com.google.android.gms:play-services-base:11.8.0'
-    implementation 'com.google.android.gms:play-services-auth:11.8.0'
+    implementation 'com.google.android.gms:play-services-auth:16.0.0'
+    implementation 'com.google.android.gms:play-services-vision:15.0.2'
     implementation 'com.google.apis:google-api-services-vision:v1-rev16-1.22.0'
     implementation ('com.google.api-client:google-api-client-android:1.22.0') {
         exclude module: 'httpclient'
