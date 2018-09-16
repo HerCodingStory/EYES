@@ -20,7 +20,6 @@ import android.speech.RecognizerIntent;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
@@ -82,7 +81,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         };
         setUpStateCallback();
-        openBackgroundThread();
     }
 
     @Override
@@ -105,6 +103,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         closeBackgroundThread();
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        closeCamera();
+    }
+
     private void closeCamera() {
         if (cameraCaptureSession != null) {
             cameraCaptureSession.close();
@@ -112,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         if (cameraDevice != null) {
-            cameraCaptureSession.close();
+            cameraDevice.close();
             cameraDevice = null;
         }
     }
